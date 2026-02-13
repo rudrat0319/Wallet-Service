@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: wallet-postgres
+    environment:
+      POSTGRES_DB: walletdb
+      POSTGRES_USER: wallet_user
+      POSTGRES_PASSWORD: wallet_pass
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - wallet-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wallet_user -d walletdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  wallet-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wallet-service-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/walletdb
+      SPRING_DATASOURCE_USERNAME: wallet_user
+      SPRING_DATASOURCE_PASSWORD: wallet_pass
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_FLYWAY_ENABLED: "true"
+      LOGGING_LEVEL_COM_WALLETSERVICE: DEBUG
+    ports:
+      - "8080:8080"
+    networks:
+      - wallet-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: wallet-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@wallet.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    networks:
+      - wallet-network
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    profiles:
+      - admin
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  wallet-network:
+    driver: bridge
