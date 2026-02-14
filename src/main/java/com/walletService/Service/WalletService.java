@@ -153,10 +153,8 @@ public class WalletService {
     public BalanceResponseDto getBalance(Long userId, AssetType assetType) {
         log.info("Fetching balance for user {} and asset type {}", userId, assetType);
 
-        // Validate user
         validateUser(userId);
 
-        // Get wallet without lock (read-only)
         Wallet wallet = walletRepository.findByUserIdAndAssetType(userId, assetType)
                 .orElseThrow(() -> new WalletNotFoundException(
                         String.format("Wallet not found for user %d and asset type %s", userId, assetType)
@@ -320,3 +318,4 @@ public class WalletService {
         }
     }
 }
+
