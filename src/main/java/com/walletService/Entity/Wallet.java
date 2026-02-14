@@ -24,7 +24,7 @@ public class Wallet {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
@@ -58,4 +58,5 @@ public class Wallet {
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now(ZoneOffset.UTC);
     }
+
 }
